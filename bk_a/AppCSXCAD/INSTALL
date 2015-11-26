@@ -1,0 +1,19 @@
+Install instructions for AppCSXCAD:
+---------------------------------------------
+
+1) Prerequirements:
+  AppCSXCAD relies on the QCSXCAD & CSXCAD libraries and its dependencies:
+  - CSXCAD, QCSXCAD (http://openEMS.de)
+
+2) Build:
+  - change directory to QCSXCAD
+  - build:
+    mkdir build
+    cd build
+    cmake .. -DCMAKE_INSTALL_PREFIX=<path/to/install/> -DCSXCAD_ROOT_DIR=<path/to/CSXCAD> -DQCSXCAD_ROOT_DIR=<path/to/QCSXCAD>
+    make
+    make install (may require root)
+
+    Note:
+      - all path informations may be stored in a localConfig.cmake
+      - the default "prefix" is /usr/local

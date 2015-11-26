@@ -1,0 +1,169 @@
+
+# define build type
+IF( DEFINED CMAKE_BUILD_TYPE )
+  SET( CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "Set to either \"Release\" or \"Debug\"" )
+ELSE()
+  SET( CMAKE_BUILD_TYPE Release CACHE STRING "Set to either \"Release\" or \"Debug\"" )
+ENDIF()
+
+PROJECT( AppCSXCAD CXX)
+
+cmake_minimum_required(VERSION 2.8)
+
+IF(EXISTS ${PROJECT_SOURCE_DIR}/localConfig.cmake)
+   include(${PROJECT_SOURCE_DIR}/localConfig.cmake)
+ENDIF()
+
+# default
+set(VERSION "v0.2.0")
+
+# add git revision
+IF(EXISTS ${PROJECT_SOURCE_DIR}/.git )
+  FIND_PACKAGE(Git)
+  # Get the latest abbreviated commit hash of the working branch
+  execute_process(
+    COMMAND ${GIT_EXECUTABLE} describe --tags
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+    OUTPUT_VARIABLE GITREV
+  )
+  set(VERSION ${GITREV})
+  string(STRIP ${VERSION} VERSION)
+  message(STATUS "Found Git repository, ${PROJECT_NAME} version tag: ${VERSION}")
+ENDIF()
+
+ADD_DEFINITIONS(-DGIT_VERSION=\"${VERSION}\")
+
+#
+# Set up RPATH for the project
+#
+option(ENABLE_RPATH "Enable rpath support on Linux and Mac" ON)
+if(NOT CMAKE_INSTALL_RPATH)
+  set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}")
+endif()
+if(APPLE AND NOT CMAKE_INSTALL_NAME_DIR)
+  set(CMAKE_INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}")
+endif()
+if(UNIX AND ENABLE_RPATH)
+  set(CMAKE_SKIP_BUILD_RPATH FALSE)
+  set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+  set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+endif()
+
+# Set locations of extra CMake modules
+SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${openEMS_SOURCE_DIR}/cmake/Modules/")
+
+# CSXCAD
+# $ cmake -DCSXCAD_ROOT_DIR=~/opt/openEMS .
+# SET(CSXCAD_ROOT_DIR ~/opt/openEMS)
+find_library(CSXCAD_LIBRARIES 
+  NAMES CSXCAD
+  HINTS ${CSXCAD_ROOT_DIR}/lib${LIB_SUFFIX}
+  NO_CMAKE_FIND_ROOT_PATH
+)
+message(STATUS "CSXCAD_LIBRARIES: ${CSXCAD_LIBRARIES}" )
+#TODO test if CSXCADs was found
+find_path(CSXCAD_INCLUDE_DIR 
+    NAMES ContinuousStructure.h 
+    HINTS ${CSXCAD_ROOT_DIR}/include
+    PATH_SUFFIXES "CSXCAD" ${CSXCAD_INCLUDE_DIR}
+    NO_CMAKE_FIND_ROOT_PATH
+)
+message(STATUS "CSXCAD_INCLUDE_DIR: ${CSXCAD_INCLUDE_DIR}" )
+INCLUDE_DIRECTORIES( ${CSXCAD_INCLUDE_DIR} ) 
+
+
+# QCSXCAD
+# $ cmake -DQCSXCAD_ROOT_DIR=~/opt/openEMS .
+# SET(QCSXCAD_ROOT_DIR ~/opt/openEMS)
+find_library(QCSXCAD_LIBRARIES 
+  NAMES QCSXCAD
+  HINTS ${QCSXCAD_ROOT_DIR}/lib${LIB_SUFFIX}
+  NO_CMAKE_FIND_ROOT_PATH
+)
+message(STATUS "QCSXCAD_LIBRARIES: ${QCSXCAD_LIBRARIES}" )
+#TODO test if QCSXCADs was found
+find_path(QCSXCAD_INCLUDE_DIR 
+    NAMES QCSXCAD.h 
+    HINTS ${QCSXCAD_ROOT_DIR}/include
+    PATH_SUFFIXES "QCSXCAD" ${QCSXCAD_INCLUDE_DIR}
+    NO_CMAKE_FIND_ROOT_PATH
+)
+message(STATUS "QCSXCAD_INCLUDE_DIR: ${QCSXCAD_INCLUDE_DIR}" )
+INCLUDE_DIRECTORIES( ${QCSXCAD_INCLUDE_DIR} ) 
+
+# vtk
+if (WIN32)
+    find_package(VTK 6.1 REQUIRED)
+else()
+    # prefer >=6.1, fallback to >=5.4
+    find_package(VTK REQUIRED)
+endif()
+
+message(STATUS "Found package VTK. Using " ${VTK_VERSION})
+include(${VTK_USE_FILE})
+INCLUDE_DIRECTORIES(${VTK_INCLUDE_DIR})
+
+if("${VTK_MAJOR_VERSION}" EQUAL 5)
+  set( vtk_LIBS
+    QVTK )
+elseif("${VTK_MAJOR_VERSION}" EQUAL 6)
+  set( vtk_LIBS
+    vtkGUISupportQt)
+endif()
+
+# Qt
+set(CMAKE_AUTOMOC ON)
+if(WIN32 OR "${VTK_MAJOR_VERSION}" EQUAL 5)
+    FIND_PACKAGE(Qt4 REQUIRED QtCore QtGui QtXml)
+    INCLUDE( ${QT_USE_FILE} )
+elseif("${VTK_MAJOR_VERSION}" EQUAL 6)
+    find_package(Qt5Widgets)
+    if(Qt5Widgets_FOUND)
+        include_directories(${Qt5Widgets_INCLUDE_DIRS})
+        find_package(Qt5Xml REQUIRED)
+        include_directories(${Qt5Xml_INCLUDE_DIRS})
+        INCLUDE_DIRECTORIES(${Qt5_INCLUDE_DIRS})
+        set(CMAKE_CXX_FLAGS "${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS}")
+    else()
+        FIND_PACKAGE(Qt4 REQUIRED QtCore QtGui QtXml)
+        INCLUDE( ${QT_USE_FILE} )
+    endif()
+endif()
+
+message(STATUS "Found package VTK. Using version " ${VTK_VERSION})
+
+SET(SOURCES
+  main.cpp
+  AppCSXCAD.cpp
+)
+
+ADD_EXECUTABLE( AppCSXCAD ${SOURCES} )
+
+if(Qt5Widgets_FOUND)
+    qt5_use_modules(AppCSXCAD Widgets Xml)
+endif()
+
+TARGET_LINK_LIBRARIES( AppCSXCAD
+  ${CSXCAD_LIBRARIES}
+  ${QCSXCAD_LIBRARIES}
+  ${QT_LIBRARIES}
+  ${vtk_LIBS}
+)
+
+#
+# Install the application.
+# On Mac the bundle is also installed into bin.
+#
+INSTALL(TARGETS AppCSXCAD
+    BUNDLE DESTINATION bin COMPONENT Runtime
+    RUNTIME DESTINATION bin COMPONENT Runtime
+)
+
+if (UNIX)
+    INSTALL(FILES AppCSXCAD.sh 
+        DESTINATION bin 
+        PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE)
+endif ()
+
+# TODO tarball
+

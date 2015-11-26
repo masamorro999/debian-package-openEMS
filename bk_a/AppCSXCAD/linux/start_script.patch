@@ -1,0 +1,10 @@
+diff --git a/AppCSXCAD.sh b/AppCSXCAD.sh
+index ca45a9e..72a9365 100755
+--- a/AppCSXCAD.sh
++++ b/AppCSXCAD.sh
+@@ -12,4 +12,4 @@ export LD_LIBRARY_PATH=
+ # you need to uncomment the next line:
+ # export LIBGL_ALWAYS_INDIRECT=y
+ 
+-$DEVEL_PATH/AppCSXCAD/AppCSXCAD $@
++AppCSXCAD $@

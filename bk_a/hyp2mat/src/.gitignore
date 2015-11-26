@@ -1,0 +1,13 @@
+*.lo
+*.o
+.deps/
+.libs/
+cmdline.c
+cmdline.h
+config.h
+config.h.in~
+hyp2mat
+hyp2mat.exe
+hyp2mat.pc
+libhyp2mat.la
+stamp-h1

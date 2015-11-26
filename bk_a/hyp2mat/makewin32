@@ -1,0 +1,23 @@
+#!/bin/sh -x
+#
+# Script to build win32 binary - run in MinGW.
+# Requires libhpdf.
+#
+HYPDIR=~/hyp2mat
+BUILDDIR=~/build-w32
+INSTDIR=~/install-w32
+rm -rf $BUILDDIR $INSTDIR
+mkdir $BUILDDIR
+cd $BUILDDIR
+CPPFLAGS=-I/usr/include LDFLAGS="-static -static-libgcc -static-libstdc++ -L/usr/lib" $HYPDIR/configure --prefix=$INSTDIR
+make install
+cp $HYPDIR/COPYING $INSTDIR/share/hyp2mat
+cp $INSTDIR/bin/hyp2mat $INSTDIR/share/hyp2mat
+# posix pthreads dll (win-builds.org)
+if [ -f /opt/windows_32/bin/libwinpthread-1.dll ]
+then
+  cp /opt/windows_32/bin/libwinpthread-1.dll $INSTDIR/share/hyp2mat
+fi
+cd $INSTDIR/share/
+zip -9 -r $BUILDDIR/hyp2mat-win32-current.zip ./hyp2mat
+#not truncated

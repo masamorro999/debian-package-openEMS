@@ -1,0 +1,11 @@
+*.lo
+*.o
+.deps/
+.libs/
+config.h
+config.h.in~
+hyp2mat.pc
+libhyp2mat.la
+parse.cc
+parse.h
+scan.cc

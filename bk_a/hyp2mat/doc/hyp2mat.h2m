@@ -1,0 +1,144 @@
+[NAME]
+hyp2mat \- convert hyperlynx files to octave/matlab scripts for electromagnetic simulation.
+
+/scripts./
+.SH OPTIONS
+
+/Print board summary/
+
+Hyperlynx input files conventionally end in 
+.BR .hyp
+\&.
+
+.I hyp2mat 
+reads input from file
+.IB infile . 
+If no input file is specified input is read from standard in.
+
+If no output file is specified output is to standard out.
+
+If a syntax error occurs during conversion, error recovery is attempted.
+.I hyp2mat 
+exits with zero status if conversion was succesful and non-zero if not.
+
+The 
+.BR --verbose 
+option can be used to list board dimensions. 
+
+If only a small region of the board needs to be simulated the 
+.BR --xmin
+.BR --xmax
+.BR --ymin 
+.BR --ymax 
+.BR --zmin 
+and
+.BR --zmax 
+options can be used to crop the board to a smaller region. 
+
+If not all layers of the board need to be simulated, the 
+.BR --layers 
+option may be used to specify layers of interest.
+
+If not all nets of the board need to be simulated, the 
+.BR --nets 
+option may be used to specify nets of interest.
+The option 
+.BR --net=? 
+lists all available nets.
+
+Circles and arcs are approximated by polygons. By default a circle is approximated by an octagon. If higher accuracy is needed, set 
+.BR --arc-precision
+to the desired precision. This will increase the number of line segments used to draw circular, oval and oblong pads, amongst others.
+
+To simulate a lossy dielectric, copy AddHyperLynxDielectric.m to your project directory and customize.
+
+The 
+.BR --flood
+option floods layers with copper.
+The flooded copper respects trace-to-plane clearances.
+Copper net name is identical to layer name. 
+
+Typical use of 
+.I hyp2mat 
+is with simulation packages such as OpenEMS.
+
+[EXAMPLES]
+Convert pcb.hyp to pdf:
+.nf
+hyp2mat -o pcb.pdf pcb.hyp
+.ni
+
+Examine original Hyperlynx file:
+.nf 
+hyp2mat -o pcb.pdf --raw pcb.hyp
+.ni 
+
+Draw arcs with an accuracy of 10 mil or better:
+.nf 
+hyp2mat -o pcb.pdf --arc-precision 0.000254 pcb.hyp
+.ni 
+
+[NOTES]
+Board outlines and copper polygons should not be self-intersecting.
+
+Common causes of syntax errors are unquoted strings, and unassigned component values.
+
+.SS Unquoted strings
+.IP "Error:"
+.I syntax error, unexpected STRING at 'Logo'
+
+.IP "Source:"
+.nf
+(? REF=My Logo BOT1 L=Bottom_Layer)
+.fi
+
+.IP Cause:
+An unquoted string contains a space (' '). 
+
+.IP Solution:
+Edit the .hyp file and put the string between double quotes:
+.nf
+(? REF="My Logo BOT1" L=Bottom_Layer)
+.fi
+
+.SS Unassigned component values
+.IP "Error:"
+.I syntax error, unexpected L, expecting FLOAT or STRING at 'L'
+
+.IP "Source:" 
+.nf
+(R REF="R1" VAL= L="Top")
+.fi
+
+.IP Cause:
+Component has not been assigned a value (VAL=). 
+
+.IP Solution:
+Edit the .hyp file and assign a value to resistor R1:
+.nf
+(R REF="R1" VAL=0 L="Top")
+.fi
+or assign the resistor a value in the schematics editor and re-export to HyperLynx.
+
+[FILES]
+.B /usr/share/hyp2mat/matlab/
+.br
+.ns
+Supporting matlab routines for OpenEMS.
+
+.B /usr/share/hyp2mat/eagle/
+.br
+.ns
+Examples and tutorial.
+
+[AUTHOR]
+.nf
+Koen De Vleeschauwer, http://www.kdvelectronics.eu
+.ni
+
+[SEE ALSO]
+.IR octave (1)
+.br
+.IR "OpenEMS" ,
+a free and open-source electromagnetic field solver using the FDTD method.
+
